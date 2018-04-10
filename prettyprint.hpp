@@ -24,10 +24,21 @@
 
 namespace pretty_print
 {
+    template <typename S, typename T>
+    void output_elem(S &stream, const T &elem)
+    {
+        if constexpr (std::is_same<unsigned char, T>::value or
+                      std::is_same<signed char, T>::value)
+        {
+            stream << (int)elem;
+        } else {
+            stream << elem;
+        }
+    }
+
     namespace detail
     {
         // SFINAE type trait to detect whether T::const_iterator exists.
-
         struct sfinae_base
         {
             using yes = char;
@@ -89,7 +100,7 @@ namespace pretty_print
     struct delimiters
     {
         using type = delimiters_values<TChar>;
-        static const type values; 
+        static const type values;
     };
 
 
@@ -121,12 +132,11 @@ namespace pretty_print
                 {
                     for ( ; ; )
                     {
-                        stream << *it;
+                        output_elem(stream, *it);
+                        if (++it == the_end) break;
 
-                    if (++it == the_end) break;
-
-                    if (delimiters_type::values.delimiter != NULL)
-                        stream << delimiters_type::values.delimiter;
+                        if (delimiters_type::values.delimiter != NULL)
+                            stream << delimiters_type::values.delimiter;
                     }
                 }
             }
@@ -161,10 +171,10 @@ namespace pretty_print
 
         static void print_body(const std::pair<T1, T2> & c, ostream_type & stream)
         {
-            stream << c.first;
+            output_elem(stream, c.first);
             if (print_container_helper<T, TChar, TCharTraits, TDelimiters>::delimiters_type::values.delimiter != NULL)
                 stream << print_container_helper<T, TChar, TCharTraits, TDelimiters>::delimiters_type::values.delimiter;
-            stream << c.second;
+            output_elem(stream, c.second);
         }
     };
 
@@ -191,7 +201,7 @@ namespace pretty_print
         static void tuple_print(const element_type & c, ostream_type & stream,
                                 typename std::conditional<sizeof...(Args) != 0, Int<0>, std::nullptr_t>::type)
         {
-            stream << std::get<0>(c);
+            output_elem(stream, std::get<0>(c));
             tuple_print(c, stream, Int<1>());
         }
 
@@ -201,7 +211,7 @@ namespace pretty_print
             if (print_container_helper<T, TChar, TCharTraits, TDelimiters>::delimiters_type::values.delimiter != NULL)
                 stream << print_container_helper<T, TChar, TCharTraits, TDelimiters>::delimiters_type::values.delimiter;
 
-            stream << std::get<N>(c);
+            output_elem(stream, std::get<N>(c));
 
             tuple_print(c, stream, Int<N + 1>());
         }
